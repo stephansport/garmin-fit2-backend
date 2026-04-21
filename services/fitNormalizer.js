@@ -1,0 +1,98 @@
+function normalizeFitData(data) {
+  const activity = data?.activity || {};
+  const sessions =
+    arrayOrEmpty(data?.sessions).length ? data.sessions :
+    arrayOrEmpty(activity?.sessions);
+
+  const session = sessions[0] || {};
+
+  const rootRecords = arrayOrEmpty(data?.records);
+  const nestedRecords = collectNestedRecords(activity);
+
+  const recordsSource = rootRecords.length ? rootRecords : nestedRecords;
+  const records = recordsSource.map(mapRecord);
+
+  return {
+    fileId: data?.file_id || activity?.file_id || null,
+    sport: session?.sport || activity?.sport || null,
+    subSport: session?.sub_sport || null,
+    startTime: session?.start_time || inferStartTime(records),
+    endTime: session?.timestamp || inferEndTime(records),
+    totalDuration: toSeconds(session?.total_elapsed_time ?? session?.total_timer_time),
+    totalDurationMs: toMilliseconds(session?.total_elapsed_time ?? session?.total_timer_time),
+    totalDistance: numberOrNull(session?.total_distance),
+    totalAscent: numberOrNull(session?.total_ascent),
+    avgSpeed: numberOrNull(session?.avg_speed),
+    avgHeartRate: numberOrNull(session?.avg_heart_rate),
+    avgPower: numberOrNull(session?.avg_power),
+    records
+  };
+}
+
+function collectNestedRecords(activity) {
+  const sessions = arrayOrEmpty(activity?.sessions);
+  const allRecords = [];
+
+  for (const session of sessions) {
+    const laps = arrayOrEmpty(session?.laps);
+
+    for (const lap of laps) {
+      const lapRecords = arrayOrEmpty(lap?.records);
+      allRecords.push(...lapRecords);
+    }
+
+    const sessionRecords = arrayOrEmpty(session?.records);
+    allRecords.push(...sessionRecords);
+  }
+
+  return allRecords;
+}
+
+function mapRecord(record) {
+  return {
+    timestamp: record?.timestamp || null,
+    elapsed_time: numberOrNull(record?.elapsed_time),
+    distance: numberOrNull(record?.distance),
+    altitude: numberOrNull(record?.altitude),
+    speed: numberOrNull(record?.speed),
+    heart_rate: numberOrNull(record?.heart_rate),
+    power: numberOrNull(record?.power),
+    cadence: numberOrNull(record?.cadence),
+    temperature: numberOrNull(record?.temperature),
+    position_lat: convertCoord(record?.position_lat),
+    position_long: convertCoord(record?.position_long)
+  };
+}
+
+function convertCoord(value) {
+  if (typeof value !== 'number') return null;
+  if (Math.abs(value) <= 180) return value;
+  return value * (180 / Math.pow(2, 31));
+}
+
+function inferStartTime(records) {
+  return records.find(r => r.timestamp)?.timestamp || null;
+}
+
+function inferEndTime(records) {
+  const last = [...records].reverse().find(r => r.timestamp);
+  return last?.timestamp || null;
+}
+
+function toSeconds(value) {
+  return typeof value === 'number' ? value : null;
+}
+
+function toMilliseconds(value) {
+  return typeof value === 'number' ? value * 1000 : null;
+}
+
+function numberOrNull(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+module.exports = { normalizeFitData };
