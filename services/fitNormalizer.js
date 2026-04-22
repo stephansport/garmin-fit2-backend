@@ -49,12 +49,23 @@ function collectNestedRecords(activity) {
 }
 
 function mapRecord(record) {
+  const altitude =
+    record?.enhanced_altitude ??
+    record?.altitude;
+
+  const speed =
+    record?.enhanced_speed ??
+    record?.speed;
+
   return {
     timestamp: record?.timestamp || null,
     elapsed_time: numberOrNull(record?.elapsed_time),
     distance: numberOrNull(record?.distance),
-    altitude: numberOrNull(record?.altitude),
-    speed: numberOrNull(record?.speed),
+
+    // NEU: Fallback auf enhanced_*
+    altitude: numberOrNull(altitude),
+    speed: numberOrNull(speed),
+
     heart_rate: numberOrNull(record?.heart_rate),
     power: numberOrNull(record?.power),
     cadence: numberOrNull(record?.cadence),
