@@ -60,7 +60,9 @@ app.post('/api/parse-fit', upload.single('file'), (req, res) => {
         console.log('Normalized keys:', Object.keys(normalized || {}));
         console.log('Normalized record count:', normalized?.records?.length);
         console.log('First normalized record:', normalized?.records?.[0]);
-
+        console.log('maxMeanPower:', normalized?.maxMeanPower);
+        console.log('maxMeanPower keys:', Object.keys(normalized?.maxMeanPower || {}));
+        
         return res.json(normalized);
       } catch (innerError) {
         console.error('Fehler in normalizeFitData oder danach:', innerError);
